@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Hero-->
+  <section id="hero" class="hero-section my-5 py-5 text-center">
+    <img
+      src="{{ url_for('static', filename='img/hero.png') }}"
+      alt="Boxcriptor: controla todas tus suscripciones"
+      class="img-fluid hero-img"
+    >
+  </section>
+
+  <!--Características-->
+  <section
+    id="features"
+    class="features-section py-5 bg-white"
+  >
+    <div class="container text-center">
+      <h3 class="mb-4">Características clave</h3>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <div class="p-3 border rounded h-100">
+            <i class="bi bi-bell-fill text-primary fs-1 mb-3"></i>
+            <h5>Alertas antes del cobro</h5>
+            <p>Recibe notificaciones días antes de cada factura.</p>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="p-3 border rounded h-100">
+            <i class="bi bi-bar-chart-line-fill text-success fs-1 mb-3"></i>
+            <h5>Analiza tus gastos</h5>
+            <p>Visualiza tu gasto mensual y anual por categoría.</p>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="p-3 border rounded h-100">
+            <i class="bi bi-lightbulb-fill text-warning fs-1 mb-3"></i>
+            <h5>Sugerencias inteligentes</h5>
+            <p>Identifica suscripciones duplicadas o poco usadas.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Separador custom -->
+  <div class="section-separator my-4"></div>
+
+  <!-- ¿Cómo funciona? (fondo claro) -->
+  <section
+    id="how-it-works"
+    class="how-it-works-section py-5 bg-light"
+  >
+    <div class="container">
+      <h3 class="text-center mb-4">¿Cómo funciona?</h3>
+      <div class="row text-center mx-auto" style="max-width:800px;">
+        <div class="col-md-3 mb-4">
+          <i class="bi bi-pencil-square text-info fs-2 mb-2"></i>
+          <h6>1. Registra tu suscripción</h6>
+          <p>Agrega nombre, precio, fecha de cobro y categoría.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <i class="bi bi-clock-fill text-primary fs-2 mb-2"></i>
+          <h6>2. Recibe alertas</h6>
+          <p>Te avisamos antes de cada cobro y subidas de precio.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <i class="bi bi-graph-up-arrow text-success fs-2 mb-2"></i>
+          <h6>3. Analiza tu gasto</h6>
+          <p>Mira estadísticas por mes y categoría.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <i class="bi bi-scissors text-danger fs-2 mb-2"></i>
+          <h6>4. Optimiza tu presupuesto</h6>
+          <p>Sugiere cancelaciones de servicios innecesarios.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
