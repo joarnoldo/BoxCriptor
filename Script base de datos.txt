@@ -1,0 +1,84 @@
+-------------------------------------
+1-Crear la base
+-------------------------------------
+use boxcriptorDB;
+
+-------------------------------------
+2-Crear colecciones
+-------------------------------------
+db.createCollection("roles");
+db.createCollection("usuarios");
+db.createCollection("categorias");
+db.createCollection("metodosPago");
+db.createCollection("proveedores");
+db.createCollection("suscripciones");
+db.createCollection("alertas");
+db.createCollection("historialPrecios");
+db.createCollection("historialPagos");
+db.createCollection("sugerenciasCancelacion");
+db.createCollection("configuraciones");
+db.createCollection("metricasUsuario");
+
+-------------------------------------
+3-Usuario para conectar la app con 
+la db
+-------------------------------------
+use boxcriptorDB
+db.createUser({
+  user: "boxcriptorApp",
+  pwd:  "boxcriptor123",
+  roles: [{ role: "readWrite", db: "boxcriptorDB"}]})
+
+-------------------------------------
+4-Indices
+-------------------------------------
+// ROLES
+db.roles.createIndex({ nombre: 1 }, { unique: true });
+
+
+
+// Indice para evitar conflictos con docs sin ese campo.
+db.usuarios.createIndex(
+  { correoLower: 1 },
+  { unique: true, partialFilterExpression: { correoLower: { $type: "string" }}});
+// Otros índices útiles
+db.usuarios.createIndex({ rolId: 1 });
+db.usuarios.createIndex({ estado: 1 });
+
+// Indices para los catálogos
+db.categorias.createIndex({ nombre: 1 }, { unique: true });
+db.proveedores.createIndex({ nombre: 1 }, { unique: true });
+
+// Metodos de pago por Usuario
+db.metodosPago.createIndex({ userId: 1, predeterminado: 1 });
+db.metodosPago.createIndex({ userId: 1 });
+// Opcional: evitar alias duplicados por usuario
+// db.metodosPago.createIndex({ userId: 1, alias: 1 }, { unique: true });
+
+// Suscripciones
+db.suscripciones.createIndex({ userId: 1, proximoCobro: 1 });
+db.suscripciones.createIndex({ userId: 1, proveedorId: 1, estado: 1 });
+db.suscripciones.createIndex({ userId: 1, categoriaId: 1 });
+
+// Historial de pagos
+db.historialPagos.createIndex({ userId: 1, pagadoEn: -1 });
+db.historialPagos.createIndex({ userId: 1, categoriaId: 1, pagadoEn: 1 });
+
+// Historial de precio
+db.historialPrecios.createIndex({ suscripcionId: 1, fecha: -1 });
+
+// Alertas
+db.alertas.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
+db.alertas.createIndex({ userId: 1, programadaPara: 1 });
+db.alertas.createIndex({ userId: 1, tipo: 1, enviada: 1 });
+
+// Sugerencias de cancelación
+db.sugerenciasCancelacion.createIndex({ userId: 1, score: -1 });
+db.sugerenciasCancelacion.createIndex({ userId: 1, motivo: 1 });
+db.sugerenciasCancelacion.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
+
+// Configuraciones
+db.configuraciones.createIndex({ userId: 1, clave: 1 }, { unique: true });
+
+// Métricas de usuario por periódo de tiempo
+db.metricasUsuario.createIndex({ userId: 1, periodo: 1 }, { unique: true });

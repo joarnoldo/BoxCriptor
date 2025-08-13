@@ -5,18 +5,20 @@ from wtforms.validators import DataRequired, Email
 class LoginForm(FlaskForm):
     email = StringField(
         'Correo electrónico',
-        validators=[DataRequired(), Email()],
+        validators=[DataRequired(message="El correo es obligatorio."), Email()],
         render_kw={
-            "placeholder": "Ingresa tu correo electrónico",
-            "class": "form-control"
+            "class": "form-control",
+            "placeholder": "tu@correo.com",
+            "autocomplete": "username"
         }
     )
     password = PasswordField(
         'Contraseña',
-        validators=[DataRequired()],
+        validators=[DataRequired(message="La contraseña es obligatoria.")],
         render_kw={
+            "class": "form-control",
             "placeholder": "Ingresa tu contraseña",
-            "class": "form-control"
+            "autocomplete": "current-password"
         }
     )
     submit = SubmitField(

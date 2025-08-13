@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Nueva' if modo=='crear' else 'Editar' }} suscripción{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 760px;">
+  <h2 class="mb-3">{{ 'Nueva' if modo=='crear' else 'Editar' }} suscripción</h2>
+
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.proveedor_id.label.text }}</label>
+        {{ form.proveedor_id }}
+        {% if form.proveedor_id.errors %}<div class="text-danger small">{{ form.proveedor_id.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">{{ form.categoria_id.label.text }}</label>
+        {{ form.categoria_id }}
+        {% if form.categoria_id.errors %}<div class="text-danger small">{{ form.categoria_id.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">{{ form.metodo_pago_id.label.text }}</label>
+        {{ form.metodo_pago_id }}
+        {% if form.metodo_pago_id.errors %}<div class="text-danger small">{{ form.metodo_pago_id.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">{{ form.nombre.label.text }}</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}<div class="text-danger small">{{ form.nombre.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">{{ form.plan.label.text }}</label>
+        {{ form.plan }}
+        {% if form.plan.errors %}<div class="text-danger small">{{ form.plan.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">{{ form.precio.label.text }}</label>
+        {{ form.precio }}
+        {% if form.precio.errors %}<div class="text-danger small">{{ form.precio.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">{{ form.frecuencia.label.text }}</label>
+        {{ form.frecuencia }}
+        {% if form.frecuencia.errors %}<div class="text-danger small">{{ form.frecuencia.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ form.proximo_cobro.label.text }}</label>
+        {{ form.proximo_cobro }}
+        {% if form.proximo_cobro.errors %}<div class="text-danger small">{{ form.proximo_cobro.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-4 d-flex align-items-center">
+        <div class="form-check mt-4">
+          {{ form.renovacion_auto }} <label class="form-check-label ms-1"> {{ form.renovacion_auto.label.text }}</label>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ form.estado.label.text }}</label>
+        {{ form.estado }}
+        {% if form.estado.errors %}<div class="text-danger small">{{ form.estado.errors[0] }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+      {{ form.enviar }}
+      <a href="{{ url_for('suscripcion.listar') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

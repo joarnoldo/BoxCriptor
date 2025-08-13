@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block title %}Registro de Usuario{% endblock %}
+
+{% block content %}
+<section class="login_section d-flex align-items-center justify-content-center py-5">
+  <div class="login_card p-4 shadow-sm rounded" style="max-width: 480px; width: 100%;">
+    <h2 class="text-center mb-4">Crear cuenta</h2>
+
+    {# Mensajes flash #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} text-center">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('usuario.register') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        {{ form.nombre_completo.label(class="form-label") }}
+        {{ form.nombre_completo }}
+        {% if form.nombre_completo.errors %}
+          <div class="text-danger small">{{ form.nombre_completo.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.nombre_usuario.label(class="form-label") }}
+        {{ form.nombre_usuario }}
+        <div class="form-text">Solo letras, números, guion y punto (3–20 caracteres).</div>
+        {% if form.nombre_usuario.errors %}
+          <div class="text-danger small">{{ form.nombre_usuario.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.correo.label(class="form-label") }}
+        {{ form.correo }}
+        {% if form.correo.errors %}
+          <div class="text-danger small">{{ form.correo.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.contrasena.label(class="form-label") }}
+        {{ form.contrasena }}
+        <div class="form-text">Mínimo 6 caracteres.</div>
+        {% if form.contrasena.errors %}
+          <div class="text-danger small">{{ form.contrasena.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        {{ form.telefono.label(class="form-label") }}
+        {{ form.telefono }}
+        <div class="form-text">Ej: 8888 8888</div>
+        {% if form.telefono.errors %}
+          <div class="text-danger small">{{ form.telefono.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="text-center mb-3">
+        {{ form.enviar }}
+      </div>
+
+      <div class="text-center">
+        <p class="mb-0">
+          ¿Ya tienes cuenta?
+          <a href="{{ url_for('usuario.login') }}">Inicia sesión</a>
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
