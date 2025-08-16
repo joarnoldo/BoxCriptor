@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block title %}Actualizar precio{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 560px;">
+  <h2 class="mb-3">Actualizar precio</h2>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <p class="mb-1"><strong>Suscripción:</strong> {{ suscripcion.nombre }}</p>
+      <p class="mb-1"><strong>Plan:</strong> {{ suscripcion.plan or '-' }}</p>
+      <p class="mb-0"><strong>Precio actual:</strong> ₡ {{ '%.2f'|format(suscripcion.precio or 0) }}</p>
+    </div>
+  </div>
+
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      <label class="form-label">{{ form.nuevo_precio.label.text }}</label>
+      {{ form.nuevo_precio }}
+      {% if form.nuevo_precio.errors %}
+        <div class="text-danger small">{{ form.nuevo_precio.errors[0] }}</div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+      {{ form.enviar }}
+      <a href="{{ url_for('suscripcion.listar') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

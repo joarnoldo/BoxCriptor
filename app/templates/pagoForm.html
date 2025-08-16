@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Nuevo pago' if modo=='crear' else 'Editar pago' }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">{{ 'Nuevo pago' if modo=='crear' else 'Editar pago' }}</h2>
+    </div>
+
+    {% if suscripcion %}
+    <div class="alert alert-info">
+        <div class="d-flex justify-content-between">
+            <span>
+                <strong>Suscripción:</strong> {{ suscripcion.nombre }} |
+                <strong>Precio actual:</strong> CRC {{ '%.0f'|format(suscripcion.precio|default(0)) }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white p-3 rounded shadow-sm">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    {{ form.pagado_en.label(class="form-label") }}
+                    {{ form.pagado_en(class="form-control") }}
+                    {% for e in form.pagado_en.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.monto.label(class="form-label") }}
+                    {{ form.monto(class="form-control", placeholder="Dejar vacío para usar el precio de la suscripción")
+                    }}
+                    {% for e in form.monto.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.metodo_pago_id.label(class="form-label") }}
+                    {{ form.metodo_pago_id(class="form-select") }}
+                    {% for e in form.metodo_pago_id.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12">
+                    {{ form.notas.label(class="form-label") }}
+                    {{ form.notas(class="form-control", rows="3") }}
+                    {% for e in form.notas.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="text-end mt-3">
+                <a class="btn btn-light" href="{{ url_for('pago.listar') }}">Cancelar</a>
+                {{ form.submit(class="btn btn-primary ms-2") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

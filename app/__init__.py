@@ -1,6 +1,8 @@
 from flask import Flask, session
 from flask_pymongo import PyMongo
 from flask_wtf import CSRFProtect
+from datetime import datetime, timezone
+from bson.objectid import ObjectId
 
 mongo = PyMongo()
 csrf = CSRFProtect()
@@ -9,11 +11,10 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_pyfile('../config.py')
 
-    # Inicializar extensiones
     mongo.init_app(app)
     csrf.init_app(app)
 
-    # Blueprints
+    # ---- Blueprints ----
     from app.routes.mainRoutes import main_bp
     app.register_blueprint(main_bp)
 
@@ -23,9 +24,30 @@ def create_app():
     from app.routes.suscripcionRoutes import suscripcion_bp
     app.register_blueprint(suscripcion_bp)
 
-    # Inyectar 'user' en todos los templates
+    from app.routes.pagoRoutes import pago_bp
+    app.register_blueprint(pago_bp)
+
+    from app.routes.alertaRoutes import alerta_bp, schedule_alerts
+    app.register_blueprint(alerta_bp)
+
+    from app.routes.estadisticaRoutes import estadistica_bp
+    app.register_blueprint(estadistica_bp)
+
     @app.context_processor
-    def inject_user():
-        return {'user': session.get('user')}
+    def inject_globals():
+        u = session.get('user')
+        pending = 0
+        if u and u.get('id'):
+            try:
+                pending = mongo.db.alertas.count_documents({
+                    'userId': ObjectId(u['id']),
+                    'enviada': False,
+                    'programadaPara': {'$ne': None, '$lte': datetime.now(timezone.utc).replace(tzinfo=None)}
+                })
+            except Exception:
+                pending = 0
+        return {'user': u, 'alertas_pendientes': pending}
+
+    schedule_alerts(app)
 
     return app

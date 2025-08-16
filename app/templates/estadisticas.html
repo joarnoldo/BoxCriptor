@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Estadísticas{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Estadísticas</h2>
+    <small class="text-muted">Panel analítico de tus gastos y suscripciones</small>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="p-3 bg-white rounded shadow-sm h-100">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Gasto últimos 90 días</span>
+          <i class="bi bi-currency-dollar"></i>
+        </div>
+        <h3 class="mt-2" id="kpi-total-90">CRC 0</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 bg-white rounded shadow-sm h-100">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Gasto últimos 12 meses</span>
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <h3 class="mt-2" id="kpi-total-12">CRC 0</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 bg-white rounded shadow-sm h-100">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Promedio mensual (12m)</span>
+          <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <h3 class="mt-2" id="kpi-prom-mes">CRC 0</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts fila 1 -->
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="p-3 bg-white rounded shadow-sm">
+        <h5 class="mb-3">Evolución mensual (12 meses)</h5>
+        <div class="chart-box chart-box--lg">
+          <canvas id="chartMonthly"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="p-3 bg-white rounded shadow-sm">
+        <h5 class="mb-3">Gasto por categoría (90 días)</h5>
+        <div class="chart-box chart-box--md">
+          <canvas id="chartCategorias"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts fila 2 -->
+  <div class="row g-3 mt-3">
+    <div class="col-12">
+      <div class="p-3 bg-white rounded shadow-sm">
+        <h5 class="mb-3">Top proveedores (6 meses)</h5>
+        <div class="chart-box chart-box--md">
+          <canvas id="chartProveedores"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js y JS del módulo -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/estadisticas.js') }}"></script>
+{% endblock %}

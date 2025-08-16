@@ -52,7 +52,21 @@
             <a class="nav-link" href="{{ url_for('suscripcion.listar') }}">Gestionar Suscripciones</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Estadísticas</a>
+            <a class="nav-link" href="{{ url_for('estadistica.dashboard') }}">Estadísticas</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('pago.listar') }}">Pagos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link position-relative" href="{{ url_for('alerta.listar') }}">
+              Alertas
+              {% if alertas_pendientes and alertas_pendientes > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  {{ alertas_pendientes }}
+                  <span class="visually-hidden">alertas pendientes</span>
+                </span>
+              {% endif %}
+            </a>
           </li>
         </ul>
 
@@ -101,7 +115,6 @@
     {% if messages %}
       <div class="container mt-3">
         {% for category, msg in messages %}
-          {# Mapeo simple para 'error' -> 'danger' de Bootstrap #}
           {% set cat = 'danger' if category in ['error'] else category %}
           <div class="alert alert-{{ cat }} alert-dismissible fade show text-center" role="alert">
             {{ msg }}

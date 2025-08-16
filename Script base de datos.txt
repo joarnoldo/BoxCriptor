@@ -23,11 +23,8 @@ db.createCollection("metricasUsuario");
 3-Usuario para conectar la app con 
 la db
 -------------------------------------
-use boxcriptorDB
-db.createUser({
-  user: "boxcriptorApp",
-  pwd:  "boxcriptor123",
-  roles: [{ role: "readWrite", db: "boxcriptorDB"}]})
+En mi caso usé el usuario root y contraseña hecho
+en la clase de habilitar autenticación.
 
 -------------------------------------
 4-Indices
@@ -35,13 +32,11 @@ db.createUser({
 // ROLES
 db.roles.createIndex({ nombre: 1 }, { unique: true });
 
-
-
 // Indice para evitar conflictos con docs sin ese campo.
 db.usuarios.createIndex(
   { correoLower: 1 },
   { unique: true, partialFilterExpression: { correoLower: { $type: "string" }}});
-// Otros índices útiles
+// Para listar y filtar usuarios
 db.usuarios.createIndex({ rolId: 1 });
 db.usuarios.createIndex({ estado: 1 });
 
@@ -71,11 +66,6 @@ db.historialPrecios.createIndex({ suscripcionId: 1, fecha: -1 });
 db.alertas.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 db.alertas.createIndex({ userId: 1, programadaPara: 1 });
 db.alertas.createIndex({ userId: 1, tipo: 1, enviada: 1 });
-
-// Sugerencias de cancelación
-db.sugerenciasCancelacion.createIndex({ userId: 1, score: -1 });
-db.sugerenciasCancelacion.createIndex({ userId: 1, motivo: 1 });
-db.sugerenciasCancelacion.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 // Configuraciones
 db.configuraciones.createIndex({ userId: 1, clave: 1 }, { unique: true });

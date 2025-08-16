@@ -38,9 +38,9 @@
       <label class="form-label">Estado</label>
       <select class="form-select" name="estado">
         <option value="">— Todos —</option>
-        <option value="ACTIVA" {{ 'selected' if filtro_estado == 'ACTIVA' else '' }}>Activa</option>
-        <option value="PAUSADA" {{ 'selected' if filtro_estado == 'PAUSADA' else '' }}>Pausada</option>
-        <option value="CANCELADA" {{ 'selected' if filtro_estado == 'CANCELADA' else '' }}>Cancelada</option>
+        <option value="ACTIVA"   {{ 'selected' if filtro_estado == 'ACTIVA' else '' }}>Activa</option>
+        <option value="PAUSADA"  {{ 'selected' if filtro_estado == 'PAUSADA' else '' }}>Pausada</option>
+        <option value="CANCELADA"{{ 'selected' if filtro_estado == 'CANCELADA' else '' }}>Cancelada</option>
       </select>
     </div>
     <div class="col-md-3">
@@ -62,7 +62,7 @@
           <th>Frecuencia</th>
           <th>Próximo cobro</th>
           <th>Estado</th>
-          <th style="width: 140px;">Acciones</th>
+          <th style="width: 220px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -70,13 +70,11 @@
           {% for s in suscripciones %}
             <tr>
               <td>{{ s.nombre }}</td>
-              <td>{{ prov_map[str(s.proveedorId)] if s.proveedorId else '-' }}</td>
-              <td>{{ cat_map[str(s.categoriaId)] if s.categoriaId else '-' }}</td>
+              <td>{{ prov_map.get(s.proveedorId, '-') }}</td>
+              <td>{{ cat_map.get(s.categoriaId, '-') }}</td>
               <td class="text-end">₡ {{ '%.2f'|format(s.precio or 0) }}</td>
               <td>{{ s.frecuencia }}</td>
-              <td>
-                {% if s.proximoCobro %}{{ s.proximoCobro.strftime('%Y-%m-%d') }}{% else %}-{% endif %}
-              </td>
+              <td>{% if s.proximoCobro %}{{ s.proximoCobro.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</td>
               <td>
                 <span class="badge
                   {% if s.estado=='ACTIVA' %} bg-success
@@ -85,15 +83,35 @@
                   {{ s.estado }}
                 </span>
               </td>
-              <td>
-                <a href="{{ url_for('suscripcion.editar', sid=str(s._id)) }}" class="btn btn-sm btn-outline-secondary">
+              <td class="d-flex gap-1">
+                <!-- Editar -->
+                <a href="{{ url_for('suscripcion.editar', sid=s.sid) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Editar">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form action="{{ url_for('suscripcion.eliminar', sid=str(s._id)) }}"
+
+                <!-- Registrar pago-->
+                <form action="{{ url_for('suscripcion.registrar_pago', sid=s.sid) }}"
+                      method="POST" class="d-inline"
+                      onsubmit="return confirm('¿Registrar pago con el precio actual?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-success" title="Registrar pago">
+                    <i class="bi bi-cash-coin"></i>
+                  </button>
+                </form>
+
+                <!-- Simular aumento-->
+                <a href="{{ url_for('suscripcion.aumento_form', sid=s.sid) }}"
+                   class="btn btn-sm btn-outline-primary" title="Simular aumento de precio">
+                  <i class="bi bi-graph-up-arrow"></i>
+                </a>
+
+                <!-- Eliminar-->
+                <form action="{{ url_for('suscripcion.eliminar', sid=s.sid) }}"
                       method="POST" class="d-inline"
                       onsubmit="return confirm('¿Eliminar esta suscripción?');">
-                  {{ csrf_token() }}
-                  <button class="btn btn-sm btn-outline-danger">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger" title="Eliminar">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
@@ -101,7 +119,11 @@
             </tr>
           {% endfor %}
         {% else %}
-          <tr><td colspan="8" class="text-center text-muted py-4">No hay suscripciones.</td></tr>
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              No hay suscripciones.
+            </td>
+          </tr>
         {% endif %}
       </tbody>
     </table>

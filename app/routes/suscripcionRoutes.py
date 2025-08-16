@@ -3,6 +3,9 @@ from bson.objectid import ObjectId
 from datetime import datetime, timezone, date
 from app import mongo
 from app.forms.suscripcionForm import SuscripcionForm
+from app.forms.precioForm import PrecioForm
+import calendar
+from datetime import timedelta
 
 suscripcion_bp = Blueprint('suscripcion', __name__, template_folder='../templates')
 
@@ -34,9 +37,9 @@ def _load_choices(user_oid, form: SuscripcionForm):
 
     return provs, cats, mps
 
-# convierte date a datetime
+# convierte la fecha
 def _date_to_utc(dt_date: date):
-    return datetime(dt_date.year, dt_date.month, dt_date.day, tzinfo=timezone.utc)
+    return datetime(dt_date.year, dt_date.month, dt_date.day, tzinfo=timezone.utc).replace(tzinfo=None)
 
 # --------- Listar y Filtrar ---------
 @suscripcion_bp.route('/suscripciones')
@@ -59,15 +62,21 @@ def listar():
 
     subs = list(mongo.db.suscripciones.find(query).sort('proximoCobro', 1))
 
-    # mostrar nombres en la tabla
-    provs = list(mongo.db.proveedores.find({}, {'nombre': 1}))
-    cats = list(mongo.db.categorias.find({}, {'nombre': 1}))
-    prov_map = {str(p['_id']): p['nombre'] for p in provs}
-    cat_map = {str(c['_id']): c['nombre'] for c in cats}
+    # sid para usar en las URL
+    for s in subs:
+        s['sid'] = str(s['_id'])
 
-    # opciones para filtros
+    # Carga catálogos
+    provs = list(mongo.db.proveedores.find({}, {'nombre': 1}))
+    cats  = list(mongo.db.categorias.find({}, {'nombre': 1}))
+
+    # Claves ObjectId para indexar con proveedorId y categoriaId
+    prov_map = {p['_id']: p['nombre'] for p in provs}
+    cat_map  = {c['_id']: c['nombre'] for c in cats}
+
+    # Opciones para los filtros
     prov_choices = [(str(p['_id']), p['nombre']) for p in provs]
-    cat_choices = [(str(c['_id']), c['nombre']) for c in cats]
+    cat_choices  = [(str(c['_id']), c['nombre']) for c in cats]
 
     return render_template(
         'gestionarSuscripciones.html',
@@ -90,6 +99,7 @@ def crear():
     _load_choices(user_oid, form)
 
     if form.validate_on_submit():
+        ahora = datetime.now(timezone.utc).replace(tzinfo=None)
         doc = {
             'userId': user_oid,
             'proveedorId': ObjectId(form.proveedor_id.data),
@@ -103,7 +113,7 @@ def crear():
             'proximoCobro': _date_to_utc(form.proximo_cobro.data),
             'renovacionAuto': bool(form.renovacion_auto.data),
             'estado': form.estado.data,
-            'creadoEn': datetime.now(timezone.utc),
+            'creadoEn': ahora,
             'actualizadoEn': None,
             'ultimaVerificacionPrecio': None
         }
@@ -145,6 +155,7 @@ def editar(sid):
         form.estado.data = sub.get('estado', 'ACTIVA')
 
     if form.validate_on_submit():
+        ahora = datetime.now(timezone.utc).replace(tzinfo=None)
         update = {
             'proveedorId': ObjectId(form.proveedor_id.data),
             'categoriaId': ObjectId(form.categoria_id.data),
@@ -156,7 +167,7 @@ def editar(sid):
             'proximoCobro': _date_to_utc(form.proximo_cobro.data),
             'renovacionAuto': bool(form.renovacion_auto.data),
             'estado': form.estado.data,
-            'actualizadoEn': datetime.now(timezone.utc)
+            'actualizadoEn': ahora
         }
         mongo.db.suscripciones.update_one({'_id': s_oid, 'userId': user_oid}, {'$set': update})
         flash('Suscripción actualizada.', 'success')
@@ -177,3 +188,115 @@ def eliminar(sid):
     mongo.db.suscripciones.delete_one({'_id': s_oid, 'userId': user_oid})
     flash('Suscripción eliminada.', 'info')
     return redirect(url_for('suscripcion.listar'))
+
+# --------- Para avanzar la fecha de cobro ---------
+def _advance_charge(d: datetime, frecuencia: str) -> datetime:
+    if not d:
+        return None
+    months = {
+        'MENSUAL': 1,
+        'TRIMESTRAL': 3,
+        'SEMESTRAL': 6,
+        'ANUAL': 12
+    }.get(frecuencia, 1)
+
+    y = d.year
+    m = d.month + months
+    while m > 12:
+        m -= 12
+        y += 1
+    day = min(d.day, calendar.monthrange(y, m)[1])
+    return datetime(y, m, day, tzinfo=timezone.utc).replace(tzinfo=None)
+
+# --------- Registrar pago ---------
+@suscripcion_bp.route('/suscripciones/<sid>/pago', methods=['POST'])
+@login_required
+def registrar_pago(sid):
+    user_oid = _user_oid()
+    try:
+        s_oid = ObjectId(sid)
+    except:
+        abort(404)
+
+    s = mongo.db.suscripciones.find_one({'_id': s_oid, 'userId': user_oid})
+    if not s:
+        abort(404)
+
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    monto = float(s.get('precio', 0))
+    categoria_id = s.get('categoriaId')
+
+    #Insertar movimiento en historialPagos
+    mongo.db.historialPagos.insert_one({
+        'userId': user_oid,
+        'suscripcionId': s_oid,
+        'categoriaId': categoria_id,
+        'monto': monto,
+        'moneda': 'CRC',
+        'pagadoEn': ahora
+    })
+
+    #Avanzar próximo cobro según frecuencia
+    proximo = _advance_charge(s.get('proximoCobro'), s.get('frecuencia', 'MENSUAL'))
+    mongo.db.suscripciones.update_one(
+        {'_id': s_oid, 'userId': user_oid},
+        {'$set': {'proximoCobro': proximo, 'actualizadoEn': ahora}}
+    )
+
+    flash('Pago registrado y próximo cobro actualizado.', 'success')
+    return redirect(url_for('suscripcion.listar'))
+
+# --------- Simular aumento de precio ---------
+@suscripcion_bp.route('/suscripciones/<sid>/aumento', methods=['GET', 'POST'])
+@login_required
+def aumento_form(sid):
+    user_oid = _user_oid()
+    try:
+        s_oid = ObjectId(sid)
+    except:
+        abort(404)
+
+    s = mongo.db.suscripciones.find_one({'_id': s_oid, 'userId': user_oid})
+    if not s:
+        abort(404)
+
+    form = PrecioForm()
+    if form.validate_on_submit():
+        precio_ant = float(s.get('precio', 0))
+        precio_nuevo = float(form.nuevo_precio.data)
+        ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        #Historial de precios
+        mongo.db.historialPrecios.insert_one({
+            'suscripcionId': s_oid,
+            'fecha': ahora,
+            'precioAnt': precio_ant,
+            'precioNuevo': precio_nuevo,
+            'moneda': 'CRC',
+            'fuente': 'manual'
+        })
+
+        #Actualizar suscripción
+        mongo.db.suscripciones.update_one(
+            {'_id': s_oid, 'userId': user_oid},
+            {'$set': {'precio': precio_nuevo, 'ultimaVerificacionPrecio': ahora, 'actualizadoEn': ahora}}
+        )
+
+        # Crear alerta por aumento de precio
+        mongo.db.alertas.insert_one({
+            'userId': s['userId'],
+            'suscripcionId': s_oid,
+            'tipo': 'AUMENTO_PRECIO',
+            'titulo': f'Aumento de precio en {s.get("nombre", "Suscripción")}',
+            'programadaPara': ahora,
+            'paraCobro': s.get('proximoCobro'),
+            'enviada': False,
+            'enviadaEn': None,
+            'expireAt': ahora + timedelta(days=7),
+            'creadaEn': ahora
+        })
+
+        flash('Precio actualizado y registrado en historial.', 'success')
+        return redirect(url_for('suscripcion.listar'))
+
+    return render_template('aumentoPrecio.html', form=form, suscripcion=s)

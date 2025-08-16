@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block title %}Mi perfil{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-3">Mi perfil</h2>
+    </div>
+  </div>
+
+  {# Mensajes flash arriba (layout ya los muestra, este bloque es opcional) #}
+  {# Dejarlo vacío si confías en el layout #}
+
+  <div class="row g-4">
+    <!-- Datos de cuenta -->
+    <div class="col-lg-7">
+      <div class="p-3 bg-white rounded shadow-sm h-100">
+        <h5 class="mb-3">Datos de la cuenta</h5>
+
+        <form method="POST" action="{{ url_for('usuario.perfil') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.nombre_completo.label(class="form-label") }}
+            {{ form.nombre_completo(class="form-control", placeholder="Tu nombre") }}
+            {% for e in form.nombre_completo.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.nombre_usuario.label(class="form-label") }}
+            {{ form.nombre_usuario(class="form-control", placeholder="Usuario") }}
+            {% for e in form.nombre_usuario.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.correo.label(class="form-label") }}
+            {{ form.correo(class="form-control", placeholder="correo@dominio.com") }}
+            {% for e in form.correo.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.telefono.label(class="form-label") }}
+            {{ form.telefono(class="form-control", placeholder="Teléfono (opcional)") }}
+            {% for e in form.telefono.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="text-end">
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Cambiar contraseña -->
+    <div class="col-lg-5">
+      <div class="p-3 bg-white rounded shadow-sm h-100">
+        <h5 class="mb-3">Cambiar contraseña</h5>
+
+        <form method="POST" action="{{ url_for('usuario.cambiar_contrasena') }}">
+          {{ pass_form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ pass_form.contrasena_actual.label(class="form-label") }}
+            {{ pass_form.contrasena_actual(class="form-control", placeholder="Actual") }}
+            {% for e in pass_form.contrasena_actual.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ pass_form.nueva_contrasena.label(class="form-label") }}
+            {{ pass_form.nueva_contrasena(class="form-control", placeholder="Nueva (mínimo 6)") }}
+            {% for e in pass_form.nueva_contrasena.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ pass_form.confirmar_contrasena.label(class="form-label") }}
+            {{ pass_form.confirmar_contrasena(class="form-control", placeholder="Confirmar nueva") }}
+            {% for e in pass_form.confirmar_contrasena.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="text-end">
+            {{ pass_form.submit_pass(class="btn btn-outline-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
