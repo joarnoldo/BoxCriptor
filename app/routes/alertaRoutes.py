@@ -86,7 +86,7 @@ def listar():
 
     alerts = list(mongo.db.alertas.find(query).sort([('programadaPara', 1)]))
 
-    # Calcula valores derivados y el id para URLs
+    # Calcula valores y el id para URLs
     for a in alerts:
         prog = a.get('programadaPara') 
         a['is_pendiente'] = (not a.get('enviada', False)) and (prog is not None) and (prog <= ahora)

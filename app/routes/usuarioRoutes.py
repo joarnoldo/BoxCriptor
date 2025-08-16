@@ -94,17 +94,17 @@ def register():
 def perfil():
     user_oid = _user_oid()
 
-    # Cargar usuario (sin hash)
+    # Cargar usuario
     user_doc = mongo.db.usuarios.find_one({'_id': user_oid}, {'passwordHash': 0})
     if not user_doc:
         flash('No se pudo cargar tu perfil. Vuelve a iniciar sesión.', 'warning')
         return redirect(url_for('usuario.logout'))
 
     form = PerfilForm()
-    pass_form = CambioContrasenaForm()  # para el modal o pestaña de contraseña
+    pass_form = CambioContrasenaForm()
 
     if request.method == 'GET':
-        # Pre-cargar datos en el form
+        # Precargar datos en el form
         form.nombre_completo.data = user_doc.get('nombre', '')
         form.nombre_usuario.data = user_doc.get('nombreUsuario', '')
         form.correo.data = user_doc.get('correo', '')
@@ -154,7 +154,7 @@ def perfil():
 
     return render_template('perfilUsuario.html', form=form, pass_form=pass_form)
 
-# --------- Cambiar contraseña (POST) ---------
+# --------- Cambiar contraseña---------
 @usuario_bp.route('/perfil/cambiar-contrasena', methods=['POST'])
 @login_required
 def cambiar_contrasena():
@@ -164,7 +164,7 @@ def cambiar_contrasena():
         flash('No se pudo cargar tu perfil. Vuelve a iniciar sesión.', 'warning')
         return redirect(url_for('usuario.logout'))
 
-    form = PerfilForm()  # para que no falle render en caso de error
+    form = PerfilForm()
     pass_form = CambioContrasenaForm()
 
     if pass_form.validate_on_submit():
@@ -185,13 +185,8 @@ def cambiar_contrasena():
         flash('Contraseña actualizada con éxito.', 'success')
         return redirect(url_for('usuario.perfil'))
 
-    # Si no valida, vuelve a la vista con errores
+    # Si no valida devuelve a la vista con errores
     return render_template('perfilUsuario.html', form=form, pass_form=pass_form)
-
-# --------- Recuperar contraseña (placeholder) ---------
-@usuario_bp.route('/recuperar-contrasena')
-def recover_password():
-    return render_template('recuperarContrasena.html')
 
 # --------- Logout ---------
 @usuario_bp.route('/logout')
