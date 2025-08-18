@@ -228,13 +228,15 @@ def registrar_pago(sid):
 
     #Insertar movimiento en historialPagos
     mongo.db.historialPagos.insert_one({
-        'userId': user_oid,
-        'suscripcionId': s_oid,
-        'categoriaId': categoria_id,
-        'monto': monto,
-        'moneda': 'CRC',
-        'pagadoEn': ahora
+    'userId': user_oid,
+    'suscripcionId': s_oid,
+    'categoriaId': categoria_id,
+    'metodoPagoId': s.get('metodoPagoId'),
+    'monto': monto,
+    'moneda': 'CRC',
+    'pagadoEn': ahora
     })
+
 
     #Avanzar próximo cobro según frecuencia
     proximo = _advance_charge(s.get('proximoCobro'), s.get('frecuencia', 'MENSUAL'))

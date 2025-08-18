@@ -29,9 +29,8 @@
         <label class="form-label">{{ form.metodo_pago_id.label.text }}</label>
         <div class="d-flex gap-2">
           {{ form.metodo_pago_id }}
-          <a href="{{ url_for('metodo_pago.crear') }}" class="btn btn-outline-primary btn-sm">
-            + Nuevo
-          </a>
+          <a href="{{ url_for('metodo_pago.crear', next=url_for('suscripcion.crear')) }}" class="btn btn-outline-primary btn-sm">+ Nuevo</a>
+
         </div>
         {% if form.metodo_pago_id.errors %}
           <div class="text-danger small">{{ form.metodo_pago_id.errors[0] }}</div>

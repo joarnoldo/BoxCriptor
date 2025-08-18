@@ -24,6 +24,9 @@ def create_app():
     from app.routes.suscripcionRoutes import suscripcion_bp
     app.register_blueprint(suscripcion_bp)
 
+    from app.routes.metodoPagoRoutes import metodo_pago_bp
+    app.register_blueprint(metodo_pago_bp)
+
     from app.routes.pagoRoutes import pago_bp
     app.register_blueprint(pago_bp)
 

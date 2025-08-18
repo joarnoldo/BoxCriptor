@@ -7,7 +7,7 @@
     <h2 class="mb-0">Pagos</h2>
     <div>
       <a class="btn btn-outline-secondary"
-         href="{{ url_for('pago.export_csv', desde=f_desde, hasta=f_hasta, categoria_id=f_cat, proveedor_id=f_prov) }}">
+         href="{{ url_for('pago.listar', desde=f_desde, hasta=f_hasta, categoria_id=f_cat, proveedor_id=f_prov, export='csv') }}">
         <i class="bi bi-download"></i> Exportar CSV
       </a>
     </div>
@@ -55,7 +55,6 @@
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>Fecha</th>
           <th>Proveedor</th>
           <th>Categoría</th>
           <th class="text-end">Monto (CRC)</th>
@@ -68,25 +67,24 @@
         {% if pagos %}
           {% for p in pagos %}
           <tr>
-            <td>{{ p.pagadoEn.strftime('%Y-%m-%d') if p.pagadoEn else '-' }}</td>
             <td>{{ p.proveedorNombre or '-' }}</td>
             <td>{{ p.categoriaNombre or '-' }}</td>
             <td class="text-end">{{ '%.0f'|format(p.monto|default(0)) }}</td>
             <td>{{ p.metodoPagoAlias or '-' }}</td>
             <td class="text-truncate" style="max-width: 240px;">{{ p.notas or '' }}</td>
             <td class="text-end">
-              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('pago.editar', pid=p.pid) }}">
-                Editar
-              </a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('pago.editar', pid=p.pid) }}">Editar</a>
+
               <form class="d-inline" method="POST" action="{{ url_for('pago.eliminar', pid=p.pid) }}"
                     onsubmit="return confirm('¿Eliminar pago?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
               </form>
             </td>
           </tr>
           {% endfor %}
         {% else %}
-          <tr><td colspan="7" class="text-center text-muted py-4">No hay pagos con los filtros actuales.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">No hay pagos con los filtros actuales.</td></tr>
         {% endif %}
       </tbody>
     </table>

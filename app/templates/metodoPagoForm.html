@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Nuevo' if modo=='crear' else 'Editar' }} método de pago{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:600px;">
+  <h2 class="mb-3">{{ 'Nuevo' if modo=='crear' else 'Editar' }} método de pago</h2>
+
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      <label class="form-label">{{ form.alias.label.text }}</label>
+      {{ form.alias(class="form-control", placeholder="Ej. Visa personal") }}
+      {% if form.alias.errors %}
+        <div class="text-danger small">{{ form.alias.errors[0] }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ form.tipo.label.text }}</label>
+      {{ form.tipo(class="form-select") }}
+      {% if form.tipo.errors %}
+        <div class="text-danger small">{{ form.tipo.errors[0] }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-check mb-3">
+      {{ form.predeterminado(class="form-check-input", id="predet") }}
+      <label class="form-check-label" for="predet">{{ form.predeterminado.label.text }}</label>
+    </div>
+
+    <div class="d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('metodo_pago.listar') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

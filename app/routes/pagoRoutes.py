@@ -1,15 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, Response
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, abort, Response
 from bson.objectid import ObjectId
-from datetime import datetime, timezone, timedelta
-import csv
-import io
-
+from datetime import datetime, timezone
 from app import mongo
-from app.forms.pagoForm import PagoForm
+from io import StringIO
+import csv
+
+from app.forms.pagoForm import PagoForm  # ⬅️ NUEVO
 
 pago_bp = Blueprint('pago', __name__, template_folder='../templates')
 
-# --------- Login Requerido ----------
+# --------- utilidades ---------
 def login_required(fn):
     def wrapper(*args, **kwargs):
         if not session.get('user'):
@@ -22,232 +22,144 @@ def login_required(fn):
 def _user_oid():
     return ObjectId(session['user']['id'])
 
-def _to_utc_naive(d):
-    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc).replace(tzinfo=None)
+def _naive_utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
-# --------- Cargar catálogos para filtros ----------
-def _catalogos(user_oid):
+def _load_choices(u_oid, form: PagoForm):
+    """Carga choices para selects (categorías globales y métodos del usuario)."""
     cats = list(mongo.db.categorias.find({}, {'nombre': 1}).sort('nombre', 1))
-    provs = list(mongo.db.proveedores.find({}, {'nombre': 1}).sort('nombre', 1))
-    mps = list(mongo.db.metodosPago.find({'userId': user_oid}, {'alias': 1}).sort('alias', 1))
-    return cats, provs, mps
+    mps  = list(mongo.db.metodosPago.find({'userId': u_oid}, {'alias': 1}).sort('alias', 1))
+    form.categoria_id.choices = [('', '— Sin categoría —')] + [(str(c['_id']), c['nombre']) for c in cats]
+    form.metodo_pago_id.choices = [('', '— Sin método —')] + [(str(m['_id']), m['alias']) for m in mps]
 
-# --------- Listado / filtros / export ----------
+# --------- listar pagos (con filtros + lookups) ---------
 @pago_bp.route('/pagos')
 @login_required
 def listar():
-    user_oid = _user_oid()
+    u = _user_oid()
+    f_desde = request.args.get('desde') or ''
+    f_hasta = request.args.get('hasta') or ''
+    f_cat   = request.args.get('categoria_id') or ''
+    f_prov  = request.args.get('proveedor_id') or ''
+    export  = request.args.get('export')
 
-    # Filtros
-    f_desde = request.args.get('desde')
-    f_hasta = request.args.get('hasta')
-    f_cat = request.args.get('categoria_id') or None
-    f_prov = request.args.get('proveedor_id') or None
-
-    query = {'userId': user_oid}
+    match = {'userId': u}
     if f_desde:
-        d = datetime.strptime(f_desde, '%Y-%m-%d').date()
-        query.setdefault('pagadoEn', {})['$gte'] = _to_utc_naive(d)
+        try:
+            d = datetime.strptime(f_desde, '%Y-%m-%d')
+            match.setdefault('pagadoEn', {}); match['pagadoEn']['$gte'] = d
+        except ValueError:
+            pass
     if f_hasta:
-        h = datetime.strptime(f_hasta, '%Y-%m-%d').date()
-        query.setdefault('pagadoEn', {})['$lt'] = _to_utc_naive(h + timedelta(days=1))
+        try:
+            h = datetime.strptime(f_hasta, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999)
+            match.setdefault('pagadoEn', {}); match['pagadoEn']['$lte'] = h
+        except ValueError:
+            pass
     if f_cat:
-        query['categoriaId'] = ObjectId(f_cat)
+        try:
+            match['categoriaId'] = ObjectId(f_cat)
+        except Exception:
+            pass
+
+    pipeline = [
+        {'$match': match},
+        {'$lookup': {'from': 'suscripciones','localField': 'suscripcionId','foreignField': '_id','as': 'sub'}},
+        {'$unwind': {'path': '$sub', 'preserveNullAndEmptyArrays': True}},
+    ]
     if f_prov:
-        query['proveedorId'] = ObjectId(f_prov)
-
-    pagos = list(mongo.db.historialPagos.find(query).sort('pagadoEn', -1))
-
-    # Para mostrar nombres
-    cats, provs, mps = _catalogos(user_oid)
-    cat_map = {c['_id']: c['nombre'] for c in cats}
-    prov_map = {p['_id']: p['nombre'] for p in provs}
-    mp_map = {m['_id']: m['alias'] for m in mps}
-
-    # Enlazar nombres + sid/pid
+        try:
+            pipeline.append({'$match': {'sub.proveedorId': ObjectId(f_prov)}})
+        except Exception:
+            pass
+    pipeline += [
+        {'$lookup': {'from': 'proveedores','localField': 'sub.proveedorId','foreignField': '_id','as': 'prov'}},
+        {'$unwind': {'path': '$prov', 'preserveNullAndEmptyArrays': True}},
+        {'$lookup': {'from': 'categorias','localField': 'categoriaId','foreignField': '_id','as': 'cat'}},
+        {'$unwind': {'path': '$cat', 'preserveNullAndEmptyArrays': True}},
+        {'$lookup': {'from': 'metodosPago','localField': 'metodoPagoId','foreignField': '_id','as': 'mp'}},
+        {'$unwind': {'path': '$mp', 'preserveNullAndEmptyArrays': True}},
+        {'$project': {
+            '_id': 1, 'pagadoEn': 1, 'monto': 1, 'moneda': 1, 'notas': 1,
+            'proveedorNombre': '$prov.nombre',
+            'categoriaNombre': '$cat.nombre',
+            'metodoPagoAlias': '$mp.alias'
+        }},
+        {'$sort': {'pagadoEn': -1}}
+    ]
+    pagos = list(mongo.db.historialPagos.aggregate(pipeline))
+    total = sum(float(p.get('monto', 0) or 0) for p in pagos)
     for p in pagos:
         p['pid'] = str(p['_id'])
-        if p.get('categoriaId'):
-            p['categoriaNombre'] = cat_map.get(p['categoriaId'], '-')
-        if p.get('proveedorId'):
-            p['proveedorNombre'] = prov_map.get(p['proveedorId'], '-')
-        if p.get('metodoPagoId'):
-            p['metodoPagoAlias'] = mp_map.get(p['metodoPagoId'], '-')
 
-    # Opciones de filtros
-    cat_choices = [(str(c['_id']), c['nombre']) for c in cats]
+    provs = list(mongo.db.proveedores.find({}, {'nombre': 1}).sort('nombre', 1))
+    cats  = list(mongo.db.categorias.find({}, {'nombre': 1}).sort('nombre', 1))
     prov_choices = [(str(p['_id']), p['nombre']) for p in provs]
+    cat_choices  = [(str(c['_id']), c['nombre']) for c in cats]
 
-    # KPIs
-    total = sum(float(p.get('monto', 0)) for p in pagos)
+    if export == 'csv':
+        si = StringIO(); cw = csv.writer(si)
+        cw.writerow(['Fecha', 'Proveedor', 'Categoría', 'Monto (CRC)', 'Método de pago', 'Notas'])
+        for p in pagos:
+            fecha = p.get('pagadoEn').strftime('%Y-%m-%d') if p.get('pagadoEn') else ''
+            cw.writerow([fecha, p.get('proveedorNombre') or '', p.get('categoriaNombre') or '',
+                         f"{float(p.get('monto',0) or 0):.0f}", p.get('metodoPagoAlias') or '', p.get('notas') or ''])
+        return Response(si.getvalue(), mimetype='text/csv',
+                        headers={'Content-Disposition': 'attachment; filename=pagos.csv'})
 
-    return render_template(
-        'pagos.html',
-        pagos=pagos,
-        total=total,
-        cat_choices=cat_choices,
-        prov_choices=prov_choices,
-        f_desde=f_desde or '',
-        f_hasta=f_hasta or '',
-        f_cat=f_cat or '',
-        f_prov=f_prov or ''
-    )
+    return render_template('pagos.html', pagos=pagos, total=total,
+                           prov_choices=prov_choices, cat_choices=cat_choices,
+                           f_desde=f_desde, f_hasta=f_hasta, f_cat=f_cat, f_prov=f_prov)
 
-@pago_bp.route('/pagos/export')
-@login_required
-def export_csv():
-    user_oid = _user_oid()
-
-    # Misma lógica de filtros
-    f_desde = request.args.get('desde')
-    f_hasta = request.args.get('hasta')
-    f_cat = request.args.get('categoria_id') or None
-    f_prov = request.args.get('proveedor_id') or None
-
-    query = {'userId': user_oid}
-    if f_desde:
-        d = datetime.strptime(f_desde, '%Y-%m-%d').date()
-        query.setdefault('pagadoEn', {})['$gte'] = _to_utc_naive(d)
-    if f_hasta:
-        h = datetime.strptime(f_hasta, '%Y-%m-%d').date()
-        query.setdefault('pagadoEn', {})['$lt'] = _to_utc_naive(h + timedelta(days=1))
-    if f_cat:
-        query['categoriaId'] = ObjectId(f_cat)
-    if f_prov:
-        query['proveedorId'] = ObjectId(f_prov)
-
-    pagos = list(mongo.db.historialPagos.find(query).sort('pagadoEn', -1))
-
-    # Catalogos para nombres
-    cats, provs, mps = _catalogos(user_oid)
-    cat_map = {c['_id']: c['nombre'] for c in cats}
-    prov_map = {p['_id']: p['nombre'] for p in provs}
-    mp_map = {m['_id']: m['alias'] for m in mps}
-
-    # Construye CSV en memoria
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Fecha', 'Proveedor', 'Categoría', 'Monto CRC', 'Método de pago', 'Notas'])
-
-    for p in pagos:
-        fecha = p.get('pagadoEn')
-        fecha_str = fecha.strftime('%Y-%m-%d') if fecha else ''
-        prov = prov_map.get(p.get('proveedorId'))
-        cat = cat_map.get(p.get('categoriaId'))
-        mp = mp_map.get(p.get('metodoPagoId'))
-        writer.writerow([fecha_str, prov or '', cat or '', float(p.get('monto', 0)), mp or '', p.get('notas', '')])
-
-    output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=pagos.csv'}
-    )
-
-# --------- Crear pago manual para simular pagos ----------
-@pago_bp.route('/pagos/nuevo', methods=['GET', 'POST'])
-@login_required
-def crear():
-    user_oid = _user_oid()
-    sid = request.args.get('sid')
-    if not sid:
-        flash('Suscripción requerida.', 'warning')
-        return redirect(url_for('suscripcion.listar'))
-
-    try:
-        s_oid = ObjectId(sid)
-    except:
-        abort(404)
-
-    sub = mongo.db.suscripciones.find_one({'_id': s_oid, 'userId': user_oid})
-    if not sub:
-        abort(404)
-
-    form = PagoForm()
-    # carga métodos de pago del usuario
-    _, _, mps = _catalogos(user_oid)
-    form.metodo_pago_id.choices = [('', '— Ninguno —')] + [(str(m['_id']), m['alias']) for m in mps]
-
-    if request.method == 'GET':
-        form.pagado_en.data = datetime.now(timezone.utc).date()
-        form.monto.data = sub.get('precio', 0)
-        if sub.get('metodoPagoId'):
-            form.metodo_pago_id.data = str(sub['metodoPagoId'])
-
-    if form.validate_on_submit():
-        pagado_en = _to_utc_naive(form.pagado_en.data)
-        monto = float(form.monto.data) if form.monto.data is not None else float(sub.get('precio', 0))
-        mp_oid = ObjectId(form.metodo_pago_id.data) if form.metodo_pago_id.data else None
-        notas = (form.notas.data or '').strip()
-
-        mongo.db.historialPagos.insert_one({
-            'userId': user_oid,
-            'suscripcionId': s_oid,
-            'proveedorId': sub.get('proveedorId'),
-            'categoriaId': sub.get('categoriaId'),
-            'metodoPagoId': mp_oid,
-            'monto': monto,
-            'moneda': 'CRC',
-            'pagadoEn': pagado_en,
-            'notas': notas
-        })
-
-        flash('Pago registrado.', 'success')
-        return redirect(url_for('pago.listar'))
-
-    return render_template('pagoForm.html', form=form, suscripcion=sub, modo='crear')
-
-# --------- Editar pago ----------
+# --------- editar pago (NUEVO) ---------
 @pago_bp.route('/pagos/<pid>/editar', methods=['GET', 'POST'])
 @login_required
 def editar(pid):
-    user_oid = _user_oid()
+    u = _user_oid()
     try:
         p_oid = ObjectId(pid)
-    except:
+    except Exception:
         abort(404)
 
-    pago = mongo.db.historialPagos.find_one({'_id': p_oid, 'userId': user_oid})
+    pago = mongo.db.historialPagos.find_one({'_id': p_oid, 'userId': u})
     if not pago:
         abort(404)
 
     form = PagoForm()
-    # carga métodos de pago del usuario
-    _, _, mps = _catalogos(user_oid)
-    form.metodo_pago_id.choices = [('', '— Ninguno —')] + [(str(m['_id']), m['alias']) for m in mps]
+    _load_choices(u, form)
 
     if request.method == 'GET':
-        form.pagado_en.data = pago['pagadoEn'].date() if pago.get('pagadoEn') else None
-        form.monto.data = pago.get('monto', 0)
-        form.metodo_pago_id.data = str(pago.get('metodoPagoId')) if pago.get('metodoPagoId') else ''
+        form.monto.data = float(pago.get('monto', 0))
+        if pago.get('pagadoEn'):
+            form.pagado_en.data = pago['pagadoEn'].date()
+        form.categoria_id.data = str(pago['categoriaId']) if pago.get('categoriaId') else ''
+        form.metodo_pago_id.data = str(pago['metodoPagoId']) if pago.get('metodoPagoId') else ''
         form.notas.data = pago.get('notas', '')
 
     if form.validate_on_submit():
         update = {
-            'pagadoEn': _to_utc_naive(form.pagado_en.data),
-            'monto': float(form.monto.data) if form.monto.data is not None else 0.0,
+            'monto': float(form.monto.data),
+            'pagadoEn': datetime(form.pagado_en.data.year, form.pagado_en.data.month, form.pagado_en.data.day),
+            'categoriaId': ObjectId(form.categoria_id.data) if form.categoria_id.data else None,
             'metodoPagoId': ObjectId(form.metodo_pago_id.data) if form.metodo_pago_id.data else None,
             'notas': (form.notas.data or '').strip()
         }
-        mongo.db.historialPagos.update_one({'_id': p_oid, 'userId': user_oid}, {'$set': update})
+        mongo.db.historialPagos.update_one({'_id': p_oid, 'userId': u}, {'$set': update})
         flash('Pago actualizado.', 'success')
         return redirect(url_for('pago.listar'))
 
-    return render_template('pagoForm.html', form=form, pago=pago, modo='editar')
-
-# --------- Eliminar pago ----------
+    return render_template('pagoForm.html', form=form)
+    
+# --------- eliminar pago ---------
 @pago_bp.route('/pagos/<pid>/eliminar', methods=['POST'])
 @login_required
 def eliminar(pid):
-    user_oid = _user_oid()
+    u = _user_oid()
     try:
         p_oid = ObjectId(pid)
-    except:
+    except Exception:
         abort(404)
 
-    res = mongo.db.historialPagos.delete_one({'_id': p_oid, 'userId': user_oid})
-    if res.deleted_count:
-        flash('Pago eliminado.', 'info')
-    else:
-        flash('No se pudo eliminar el pago.', 'warning')
+    res = mongo.db.historialPagos.delete_one({'_id': p_oid, 'userId': u})
+    flash('Pago eliminado.' if res.deleted_count else 'No se encontró el pago.', 'info')
     return redirect(url_for('pago.listar'))

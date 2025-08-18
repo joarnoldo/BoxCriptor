@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}Métodos de pago{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Métodos de pago</h2>
+    <a href="{{ url_for('metodo_pago.crear') }}" class="btn btn-primary btn-sm">+ Nuevo</a>
+  </div>
+
+  <div class="table-responsive bg-white rounded shadow-sm">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Alias</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in metodos %}
+        <tr>
+          <td>{{ m.alias }}</td>
+          <td>{{ m.tipo or '-' }}</td>
+          <td>{{ 'Sí' if m.predeterminado else 'No' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center text-muted py-4">Sin métodos de pago.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
