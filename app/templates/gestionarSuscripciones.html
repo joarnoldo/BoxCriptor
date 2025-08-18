@@ -84,13 +84,12 @@
                 </span>
               </td>
               <td class="d-flex gap-1">
-                <!-- Editar -->
+               
                 <a href="{{ url_for('suscripcion.editar', sid=s.sid) }}"
                    class="btn btn-sm btn-outline-secondary" title="Editar">
                   <i class="bi bi-pencil"></i>
                 </a>
 
-                <!-- Registrar pago-->
                 <form action="{{ url_for('suscripcion.registrar_pago', sid=s.sid) }}"
                       method="POST" class="d-inline"
                       onsubmit="return confirm('¿Registrar pago con el precio actual?');">
@@ -100,13 +99,11 @@
                   </button>
                 </form>
 
-                <!-- Simular aumento-->
                 <a href="{{ url_for('suscripcion.aumento_form', sid=s.sid) }}"
                    class="btn btn-sm btn-outline-primary" title="Simular aumento de precio">
                   <i class="bi bi-graph-up-arrow"></i>
                 </a>
 
-                <!-- Eliminar-->
                 <form action="{{ url_for('suscripcion.eliminar', sid=s.sid) }}"
                       method="POST" class="d-inline"
                       onsubmit="return confirm('¿Eliminar esta suscripción?');">

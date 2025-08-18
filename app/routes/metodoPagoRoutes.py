@@ -20,7 +20,6 @@ def _user_oid():
     return ObjectId(session['user']['id'])
 
 def _now_utc_naive():
-    # Guardamos datetimes como naive UTC
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 # --- listar ---
@@ -45,7 +44,6 @@ def crear():
         tipo = form.tipo.data
         predet = bool(form.predeterminado.data)
 
-        # Si se marca como predeterminado, desmarcar otros del mismo usuario
         if predet:
             mongo.db.metodosPago.update_many(
                 {'userId': u, 'predeterminado': True},
@@ -62,7 +60,6 @@ def crear():
         mongo.db.metodosPago.insert_one(doc)
         flash('Método de pago creado.', 'success')
 
-        # Si venía desde crear suscripción, redirigir a la lista
         next_url = request.args.get('next')
         if next_url:
             return redirect(next_url)

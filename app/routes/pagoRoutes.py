@@ -4,12 +4,11 @@ from datetime import datetime, timezone
 from app import mongo
 from io import StringIO
 import csv
-
-from app.forms.pagoForm import PagoForm  # ⬅️ NUEVO
+from app.forms.pagoForm import PagoForm
 
 pago_bp = Blueprint('pago', __name__, template_folder='../templates')
 
-# --------- utilidades ---------
+# --------- Login Requerido ---------
 def login_required(fn):
     def wrapper(*args, **kwargs):
         if not session.get('user'):
@@ -32,7 +31,7 @@ def _load_choices(u_oid, form: PagoForm):
     form.categoria_id.choices = [('', '— Sin categoría —')] + [(str(c['_id']), c['nombre']) for c in cats]
     form.metodo_pago_id.choices = [('', '— Sin método —')] + [(str(m['_id']), m['alias']) for m in mps]
 
-# --------- listar pagos (con filtros + lookups) ---------
+# ---------listar pagos con filtros---------
 @pago_bp.route('/pagos')
 @login_required
 def listar():
@@ -111,7 +110,7 @@ def listar():
                            prov_choices=prov_choices, cat_choices=cat_choices,
                            f_desde=f_desde, f_hasta=f_hasta, f_cat=f_cat, f_prov=f_prov)
 
-# --------- editar pago (NUEVO) ---------
+# --------- editar pago---------
 @pago_bp.route('/pagos/<pid>/editar', methods=['GET', 'POST'])
 @login_required
 def editar(pid):
