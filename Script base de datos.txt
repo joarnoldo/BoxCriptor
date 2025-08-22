@@ -47,8 +47,6 @@ db.proveedores.createIndex({ nombre: 1 }, { unique: true });
 // Metodos de pago por Usuario
 db.metodosPago.createIndex({ userId: 1, predeterminado: 1 });
 db.metodosPago.createIndex({ userId: 1 });
-// Opcional: evitar alias duplicados por usuario
-// db.metodosPago.createIndex({ userId: 1, alias: 1 }, { unique: true });
 
 // Suscripciones
 db.suscripciones.createIndex({ userId: 1, proximoCobro: 1 });
